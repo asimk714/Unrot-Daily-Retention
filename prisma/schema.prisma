@@ -1,0 +1,131 @@
+// Prisma schema for Unrot Daily Retention Prototype
+// Data model supports: onboarding → personalized path → daily lessons → reminders → analytics
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ─── User ──────────────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  preference UserPreference?
+  progress   LessonProgress[]
+  reminder   ReminderPreference?
+  events     AnalyticsEvent[]
+}
+
+// ─── User Preference ───────────────────────────────────────────────────────────
+// Captured during onboarding: role, goal, and experience level drive path selection.
+
+model UserPreference {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  role            String // e.g. "product-manager", "software-engineer", "general"
+  learningGoal    String // e.g. "interview-prep", "upskilling", "staying-current"
+  experienceLevel String // e.g. "beginner", "intermediate", "advanced"
+  reminderTime    String? // nullable: user may skip reminder setup during onboarding
+  timezone        String? // nullable: detected or set later
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Learning Path ─────────────────────────────────────────────────────────────
+
+model LearningPath {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  role        String
+  goal        String
+  createdAt   DateTime @default(now())
+
+  lessons Lesson[]
+
+  @@index([role, goal])
+}
+
+// ─── Lesson ────────────────────────────────────────────────────────────────────
+
+model Lesson {
+  id              String   @id @default(uuid())
+  learningPathId  String
+  dayNumber       Int
+  title           String
+  summary         String
+  durationMinutes Int      @default(5)
+  contentJson     String // structured lesson content: sections, examples, knowledge check
+  createdAt       DateTime @default(now())
+
+  learningPath LearningPath     @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  progress     LessonProgress[]
+
+  @@unique([learningPathId, dayNumber])
+}
+
+// ─── Lesson Progress ───────────────────────────────────────────────────────────
+// Tracks per-user, per-lesson completion. quizScore is nullable because the user
+// may start a lesson without finishing the knowledge check.
+
+model LessonProgress {
+  id          String    @id @default(uuid())
+  userId      String
+  lessonId    String
+  startedAt   DateTime? // nullable: record can be created before the user actually starts
+  completedAt DateTime? // nullable: lesson may be in progress
+  quizScore   Float? // nullable: quiz not yet taken or lesson has no quiz
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([lessonId])
+}
+
+// ─── Reminder Preference ───────────────────────────────────────────────────────
+
+model ReminderPreference {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  enabled      Boolean  @default(true)
+  reminderTime String // e.g. "08:00"
+  timezone     String // e.g. "Asia/Kolkata"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Analytics Event ───────────────────────────────────────────────────────────
+// Flexible event log. userId is nullable to capture anonymous pre-auth events.
+
+model AnalyticsEvent {
+  id             String   @id @default(uuid())
+  userId         String?
+  eventName      String // e.g. "page_view", "lesson_started", "lesson_completed"
+  propertiesJson String   @default("{}")
+  occurredAt     DateTime @default(now())
+  sessionId      String? // nullable: may not always be available
+  route          String? // nullable: not all events originate from a page
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([eventName])
+  @@index([occurredAt])
+  @@index([userId])
+}
