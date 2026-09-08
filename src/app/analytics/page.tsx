@@ -15,6 +15,8 @@ export const metadata: Metadata = {
   description: "Prototype retention analytics, cohort analysis, and funnel metrics.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function AnalyticsPage() {
   // 1. Fetch raw analytics events from local database
   const events = await prisma.analyticsEvent.findMany({
