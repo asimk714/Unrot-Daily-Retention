@@ -7,18 +7,7 @@
  * This file is syntactically valid and can be compiled without a database.
  */
 
-import { PrismaClient } from "../src/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-
-try {
-  process.loadEnvFile();
-} catch {
-  // Ignore if .env is missing
-}
-
-const connectionString = process.env.DATABASE_URL || "file:./dev.db";
-const adapter = new PrismaBetterSqlite3({ url: connectionString });
-const prisma = new PrismaClient({ adapter });
+import { prisma } from "../src/lib/prisma";
 
 // ─── Seed Data ─────────────────────────────────────────────────────────────────
 
