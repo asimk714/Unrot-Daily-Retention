@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ﻿# Unrot Daily — Retention Prototype
 
 A lightweight daily micro-learning web application built to validate the Day 1 (D1) habit retention loop for knowledge workers.
@@ -112,3 +113,6 @@ The prototype implements the assignment's exact D1 measurement rules:
 ## 9. License
 
 Private prototype for evaluation and submission.
+=======
+
+>>>>>>> origin/main
