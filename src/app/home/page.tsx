@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth/session";
 import { getDemoUser } from "@/lib/demo-user";
 import { prisma } from "@/lib/prisma";
 import { matchLearningPath } from "@/lib/learning-path";
@@ -12,16 +13,25 @@ import {
 import { recordEvent } from "@/lib/analytics";
 import { DemoReturnActiveBanner } from "@/components/reminders/DemoReturnControls";
 import { AppHeader } from "@/components/navigation/AppHeader";
+import { Card, CardContent } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { ProgressBar } from "@/components/ui/ProgressBar";
+import { Button } from "@/components/ui/Button";
 
 export const metadata: Metadata = {
   title: "Dashboard | Unrot Daily",
   description: "Welcome back to your daily AI learning habit.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
-  const user = await getDemoUser();
+  const authUser = await getCurrentUser();
+  const demoUser = !authUser ? await getDemoUser() : null;
+  const user = authUser || demoUser;
+
   if (!user) {
-    redirect("/onboarding");
+    redirect("/login");
   }
 
   const preferences = await prisma.userPreference.findUnique({
@@ -53,7 +63,6 @@ export default async function HomePage() {
 
   // Record analytics:
   // CRITICAL RULE: When in demo preview mode, DO NOT emit session_returned_d1.
-  // Instead, record demo_return_previewed or return_home_viewed.
   if (isPreviewMode) {
     await recordEvent(
       "demo_return_previewed",
@@ -78,155 +87,152 @@ export default async function HomePage() {
     );
   }
 
-  const displayName = user.name || "Learner";
+  const displayName = user.name || (user.email.includes("@") ? user.email.split("@")[0] : "Learner");
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-text font-sans">
-      {/* Simulation Banner (only when demo preview cookie is active) */}
+      {/* Simulation Banner (only when preview cookie is set) */}
       {isPreviewMode && <DemoReturnActiveBanner />}
 
       {/* Navigation Header */}
       <AppHeader currentPath="/home" />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-8 sm:py-12 space-y-7">
+      <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-8 sm:py-12 space-y-7">
         {/* Welcome Back Greeting */}
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface border border-border text-muted text-xs font-semibold uppercase tracking-wider shadow-2xs">
-            <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
-            Daily Habit Loop Active
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-text">
-            {`Welcome back, ${displayName}!`}
+          <Badge variant="success" dot>
+            Daily Retention Streak Active
+          </Badge>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-text">
+            Welcome back, {displayName}!
           </h1>
           <p className="text-sm sm:text-base text-muted leading-relaxed">
             {isCompleted
               ? "You have completed your 5-day curriculum. Fantastic consistency!"
-              : "5 focused minutes today keeps your AI knowledge current and sharp."}
+              : "5 focused minutes today keeps your AI knowledge current, applied, and sharp."}
           </p>
         </div>
 
-        {/* Current Path & Goal Overview */}
-        <div className="p-5 rounded-2xl bg-surface border border-border space-y-2 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-muted">
-            <span className="font-semibold uppercase tracking-wider">Your Learning Goal</span>
-            <span>{matchedPath.role}</span>
-          </div>
-          <h2 className="text-lg font-bold text-text">
-            {matchedPath.title}
-          </h2>
-          <p className="text-xs text-muted leading-relaxed">
-            {matchedPath.description}
-          </p>
-        </div>
+        {/* Current Path Overview */}
+        <Card variant="default">
+          <CardContent className="p-5 sm:p-6 space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-muted">
+              <span className="font-semibold uppercase tracking-wider text-muted">Curriculum Track</span>
+              <span className="font-medium text-text">{matchedPath.role}</span>
+            </div>
+            <h2 className="text-lg sm:text-xl font-bold text-text">
+              {matchedPath.title}
+            </h2>
+            <p className="text-xs sm:text-sm text-muted leading-relaxed">
+              {matchedPath.description}
+            </p>
+          </CardContent>
+        </Card>
 
-        {/* Next Incomplete Lesson Card (Hero) */}
+        {/* Hero Card: Next Incomplete Lesson */}
         {!isCompleted && nextLesson ? (
-          <div className="rounded-2xl border-2 border-primary/30 dark:border-primary/40 bg-surface p-6 sm:p-7 space-y-5 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary text-white text-xs font-bold uppercase tracking-wider">
-                {`Today's Focus · Day ${nextLesson.dayNumber}`}
-              </span>
-              <span className="text-xs font-medium text-muted">
-                {`⏱ ~${nextLesson.durationMinutes} min`}
-              </span>
-            </div>
+          <Card variant="highlight" className="p-1 sm:p-2 shadow-card">
+            <CardContent className="p-6 sm:p-7 space-y-5">
+              <div className="flex items-center justify-between">
+                <Badge variant="primary">
+                  Today&apos;s Focus · Day {nextLesson.dayNumber}
+                </Badge>
+                <span className="text-xs font-semibold text-muted">
+                  ⏱ ~{nextLesson.durationMinutes} min
+                </span>
+              </div>
 
-            <div className="space-y-2">
-              <h3 className="text-xl sm:text-2xl font-bold text-text">
-                {nextLesson.title}
-              </h3>
-              <p className="text-sm text-muted leading-relaxed">
-                {nextLesson.summary}
-              </p>
-            </div>
+              <div className="space-y-2">
+                <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-text">
+                  {nextLesson.title}
+                </h3>
+                <p className="text-sm text-muted leading-relaxed">
+                  {nextLesson.summary}
+                </p>
+              </div>
 
-            <Link
-              href="/learn/today"
-              className="w-full inline-flex items-center justify-center py-3.5 px-6 rounded-xl bg-primary hover:bg-primary-hover text-white font-semibold text-base transition-colors shadow-xs text-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              {`Start Day ${nextLesson.dayNumber} Session →`}
-            </Link>
-          </div>
+              <div>
+                <Link href="/learn/today" className="w-full block">
+                  <Button variant="primary" size="lg" className="w-full text-base">
+                    Start Day {nextLesson.dayNumber} Session →
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
         ) : (
-          <div className="rounded-2xl border border-success/30 bg-surface p-6 sm:p-7 space-y-4 text-center shadow-xs">
-            <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-success/10 text-success text-2xl mx-auto">
+          <Card variant="default" className="text-center p-6 sm:p-8 space-y-4 border-success/30">
+            <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-success/10 text-success text-2xl mx-auto shadow-xs">
               ✓
             </div>
             <div className="space-y-1">
               <h3 className="text-xl font-bold text-text">
                 All 5 Lessons Completed!
               </h3>
-              <p className="text-xs text-muted max-w-sm mx-auto">
-                You have reached 100% completion on this learning path. Review past lessons or explore your plan anytime.
+              <p className="text-xs sm:text-sm text-muted max-w-md mx-auto">
+                You have reached 100% completion on this curriculum. Review past lessons or adjust your learning goal anytime.
               </p>
             </div>
-            <Link
-              href="/plan"
-              className="inline-flex items-center justify-center py-2.5 px-5 rounded-xl bg-primary hover:bg-primary-hover text-white text-sm font-semibold transition-colors shadow-xs"
-            >
-              Review Full Curriculum
+            <Link href="/plan" className="inline-block">
+              <Button variant="primary" size="md">
+                Review Full Curriculum
+              </Button>
             </Link>
-          </div>
+          </Card>
         )}
 
         {/* Progress Overview Card */}
-        <div className="p-5 rounded-2xl bg-surface border border-border space-y-3 shadow-xs">
-          <div className="flex items-center justify-between text-xs font-medium text-muted">
-            <span className="font-semibold uppercase tracking-wider text-muted">Path Progress</span>
-            <span className="font-semibold text-text">{`${completedCount} of ${totalCount} Lessons Complete (${progressPercentage}%)`}</span>
-          </div>
+        <Card variant="default">
+          <CardContent className="p-5 sm:p-6 space-y-3">
+            <div className="flex items-center justify-between text-xs font-medium">
+              <span className="font-semibold uppercase tracking-wider text-muted">Path Progress</span>
+              <span className="font-bold text-text">{completedCount} of {totalCount} Lessons ({progressPercentage}%)</span>
+            </div>
 
-          <div className="w-full bg-border rounded-full h-2.5 overflow-hidden">
-            <div
-              className="bg-primary h-full rounded-full transition-all duration-500"
-              style={{ width: `${progressPercentage}%` }}
-            />
-          </div>
+            <ProgressBar value={progressPercentage} variant="primary" size="md" />
 
-          <div className="flex justify-between items-center text-xs text-muted pt-1">
-            <span>Started 5-day habit</span>
-            <span>{isCompleted ? "Goal achieved!" : `${totalCount - completedCount} lessons remaining`}</span>
-          </div>
-        </div>
+            <div className="flex justify-between items-center text-xs text-muted pt-1">
+              <span>5-day retention habit</span>
+              <span>{isCompleted ? "Goal achieved!" : `${totalCount - completedCount} lessons remaining`}</span>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Daily Reminder Status Card */}
-        <div className="p-5 rounded-2xl bg-surface border border-border space-y-3 shadow-xs">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span role="img" aria-label="Bell" className="text-base">
-                🔔
-              </span>
-              <h4 className="text-sm font-bold text-text">
-                Daily Reminder
-              </h4>
+        <Card variant="default">
+          <CardContent className="p-5 sm:p-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span role="img" aria-label="Bell" className="text-base">
+                  🔔
+                </span>
+                <h4 className="text-sm font-bold text-text">
+                  Daily Morning Reminder
+                </h4>
+              </div>
+              <Badge variant={reminderPref?.enabled ? "success" : "neutral"}>
+                {reminderPref?.enabled ? "Active" : "Off"}
+              </Badge>
             </div>
-            <span
-              className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
-                reminderPref?.enabled
-                  ? "bg-success/10 text-success"
-                  : "bg-border text-muted"
-              }`}
-            >
-              {reminderPref?.enabled ? "Active" : "Not Set / Off"}
-            </span>
-          </div>
 
-          <p className="text-xs text-muted leading-relaxed">
-            {reminderPref?.enabled
-              ? `Scheduled daily at ${reminderPref.reminderTime} (${reminderPref.timezone}).`
-              : "Morning reminder is currently off. Set a consistent daily time to keep your streak alive."}
-          </p>
+            <p className="text-xs sm:text-sm text-muted leading-relaxed">
+              {reminderPref?.enabled
+                ? `Scheduled daily at ${reminderPref.reminderTime} (${reminderPref.timezone}).`
+                : "Morning reminder is currently off. Set a consistent daily time to anchor your return streak."}
+            </p>
 
-          <div className="pt-1 flex items-center justify-between">
-            <Link
-              href="/learn/complete"
-              className="text-xs font-semibold text-primary underline hover:opacity-80 transition-opacity"
-            >
-              Update reminder time or preferences →
-            </Link>
-          </div>
-        </div>
+            <div className="pt-1">
+              <Link
+                href="/learn/complete"
+                className="text-xs font-semibold text-primary hover:underline transition-all inline-flex items-center gap-1"
+              >
+                <span>Update reminder time or notification preferences</span>
+                <span>→</span>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Footer Navigation Link */}
         <div className="pt-2 text-center">

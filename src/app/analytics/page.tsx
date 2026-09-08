@@ -9,6 +9,10 @@ import {
   EXCLUDED_RETENTION_EVENTS,
 } from "@/lib/retention";
 import { AppHeader } from "@/components/navigation/AppHeader";
+import { Card, CardContent } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { ProgressBar } from "@/components/ui/ProgressBar";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export const metadata: Metadata = {
   title: "Retention Analytics | Unrot Daily",
@@ -18,7 +22,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AnalyticsPage() {
-  // 1. Fetch raw analytics events from local database
+  // 1. Fetch raw analytics events from PostgreSQL database
   const events = await prisma.analyticsEvent.findMany({
     orderBy: { occurredAt: "asc" },
   });
@@ -58,7 +62,7 @@ export default async function AnalyticsPage() {
   const reminderRate =
     newUsersCount > 0 ? (reminderOptInCount / newUsersCount) * 100 : 0;
 
-  // Separate illustrative data for demo walkthrough (does not affect real KPIs)
+  // Illustrative multi-day cohort visualization for evaluation context
   const illustrativeCohortExample = [
     { cohortDate: "2026-08-30", eligible: 50, returnedD1: 11, pct: "22.0%", status: "Complete" },
     { cohortDate: "2026-08-31", eligible: 48, returnedD1: 10, pct: "20.8%", status: "Complete" },
@@ -67,27 +71,21 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-text font-sans">
-      {/* Shared Header */}
       <AppHeader currentPath="/analytics" />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-8 space-y-10">
-        {/* Page Title & Context Header */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text">
-              Retention Analytics
-            </h1>
-            <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-primary/10 text-primary">
-              Prototype
-            </span>
-          </div>
-          <p className="text-xs text-muted">
-            Prototype analytics—not live Unrot production data
-          </p>
-        </div>
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-8 sm:py-12 space-y-10">
+        {/* Page Title Header */}
+        <PageHeader
+          eyebrow={
+            <Badge variant="primary" dot>
+              Cohort Telemetry
+            </Badge>
+          }
+          title="Retention Analytics"
+          subtitle="Evaluation dashboard measuring calendar-day D1 return rates, habit funnel conversion, and event taxonomy volume."
+        />
 
-        {/* KPI Cards Grid */}
+        {/* Core KPI Overview Grid */}
         <section aria-labelledby="kpi-heading" className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
             <div>
@@ -95,121 +93,131 @@ export default async function AnalyticsPage() {
                 Core Metrics Overview
               </h2>
               <p className="text-xs text-muted">
-                Aggregated from local prototype database sessions
+                Aggregated from live prototype database sessions
               </p>
             </div>
             <div className="flex items-center gap-2 text-xs">
-              <span className="px-2.5 py-1 rounded-md bg-surface border border-border text-muted">
-                Assignment baseline: <strong className="text-text">16%</strong> (context)
+              <span className="px-2.5 py-1 rounded-xl bg-surface border border-border text-muted font-medium">
+                Baseline: <strong className="text-text">16%</strong>
               </span>
-              <span className="px-2.5 py-1 rounded-md bg-surface border border-border text-muted">
-                Target benchmark: <strong className="text-text">22%</strong> (context)
+              <span className="px-2.5 py-1 rounded-xl bg-surface border border-border text-muted font-medium">
+                Target Benchmark: <strong className="text-primary">22%</strong>
               </span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* New Users */}
-            <div className="p-5 rounded-2xl border border-border bg-surface shadow-xs space-y-1">
-              <span className="text-xs text-muted font-medium block">
-                New Users
-              </span>
-              <div className="text-2xl sm:text-3xl font-bold text-text">
-                {newUsersCount}
-              </div>
-              <p className="text-xs text-muted/70">
-                Users with first session started
-              </p>
-            </div>
+            <Card variant="default">
+              <CardContent className="p-5 space-y-1">
+                <span className="text-xs text-muted font-medium block">
+                  New Users
+                </span>
+                <div className="text-2xl sm:text-3xl font-extrabold text-text">
+                  {newUsersCount}
+                </div>
+                <p className="text-[11px] text-muted">
+                  Users with first session started
+                </p>
+              </CardContent>
+            </Card>
 
             {/* Onboarding Completion Rate */}
-            <div className="p-5 rounded-2xl border border-border bg-surface shadow-xs space-y-1">
-              <span className="text-xs text-muted font-medium block">
-                Onboarding Completion
-              </span>
-              <div className="text-2xl sm:text-3xl font-bold text-text">
-                {`${onboardingRate.toFixed(1)}%`}
-              </div>
-              <p className="text-xs text-muted/70">
-                {`${onboardingCompletedCount} of ${newUsersCount} created plan`}
-              </p>
-            </div>
+            <Card variant="default">
+              <CardContent className="p-5 space-y-1">
+                <span className="text-xs text-muted font-medium block">
+                  Onboarding Completion
+                </span>
+                <div className="text-2xl sm:text-3xl font-extrabold text-text">
+                  {`${onboardingRate.toFixed(1)}%`}
+                </div>
+                <p className="text-[11px] text-muted">
+                  {`${onboardingCompletedCount} of ${newUsersCount} created plan`}
+                </p>
+              </CardContent>
+            </Card>
 
             {/* First Lesson Completion Rate */}
-            <div className="p-5 rounded-2xl border border-border bg-surface shadow-xs space-y-1">
-              <span className="text-xs text-muted font-medium block">
-                First Lesson Completion
-              </span>
-              <div className="text-2xl sm:text-3xl font-bold text-text">
-                {`${firstLessonRate.toFixed(1)}%`}
-              </div>
-              <p className="text-xs text-muted/70">
-                {`${firstLessonCompletedCount} of ${newUsersCount} completed Day 1`}
-              </p>
-            </div>
+            <Card variant="default">
+              <CardContent className="p-5 space-y-1">
+                <span className="text-xs text-muted font-medium block">
+                  First Lesson Completion
+                </span>
+                <div className="text-2xl sm:text-3xl font-extrabold text-text">
+                  {`${firstLessonRate.toFixed(1)}%`}
+                </div>
+                <p className="text-[11px] text-muted">
+                  {`${firstLessonCompletedCount} of ${newUsersCount} finished Day 1`}
+                </p>
+              </CardContent>
+            </Card>
 
             {/* Reminder Opt-in Rate */}
-            <div className="p-5 rounded-2xl border border-border bg-surface shadow-xs space-y-1">
-              <span className="text-xs text-muted font-medium block">
-                Reminder Opt-in
-              </span>
-              <div className="text-2xl sm:text-3xl font-bold text-text">
-                {`${reminderRate.toFixed(1)}%`}
-              </div>
-              <p className="text-xs text-muted/70">
-                {`${reminderOptInCount} of ${newUsersCount} enabled daily prompt`}
-              </p>
-            </div>
-          </div>
-
-          {/* D1 Retention KPI Card */}
-          <div className="p-6 rounded-2xl border-2 border-primary/30 dark:border-primary/40 bg-surface shadow-xs space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="space-y-0.5">
-                <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                  Primary Retention Metric · D1 Retention Rate
+            <Card variant="default">
+              <CardContent className="p-5 space-y-1">
+                <span className="text-xs text-muted font-medium block">
+                  Reminder Opt-in
                 </span>
-                <h3 className="text-lg font-bold text-text">
-                  Calendar-Day D1 Return Percentage
-                </h3>
-              </div>
-              <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-primary/10 text-primary w-fit">
-                Excludes simulated demo preview
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
-              <div className="p-4 rounded-xl bg-background border border-border space-y-0.5">
-                <span className="text-xs text-muted block">Eligible D1 Cohort Size</span>
-                <div className="text-xl font-bold text-text">
-                  {`${d1Result.eligibleUsers} users`}
+                <div className="text-2xl sm:text-3xl font-extrabold text-text">
+                  {`${reminderRate.toFixed(1)}%`}
                 </div>
-                <p className="text-[11px] text-muted/70">Closed cohorts (≥ 48h old)</p>
-              </div>
-
-              <div className="p-4 rounded-xl bg-background border border-border space-y-0.5">
-                <span className="text-xs text-muted block">D1 Retained Users</span>
-                <div className="text-xl font-bold text-text">
-                  {`${d1Result.retainedUsers} users`}
-                </div>
-                <p className="text-[11px] text-muted/70">Returned on next calendar day</p>
-              </div>
-
-              <div className="p-4 rounded-xl bg-background border border-border space-y-0.5">
-                <span className="text-xs text-muted block">Official D1 Retention</span>
-                <div className="text-xl font-bold text-text">
-                  {d1Result.hasEnoughData
-                    ? `${d1Result.d1Percentage.toFixed(1)}%`
-                    : "Not enough real cohort data yet"}
-                </div>
-                <p className="text-[11px] text-muted/70">
-                  {d1Result.hasEnoughData
-                    ? "Measured across closed cohorts"
-                    : "Requires cohorts ≥ 48h after Day 0"}
+                <p className="text-[11px] text-muted">
+                  {`${reminderOptInCount} of ${newUsersCount} enabled daily prompt`}
                 </p>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
+
+          {/* Primary D1 Retention Highlight Card */}
+          <Card variant="highlight" className="shadow-card">
+            <CardContent className="p-6 sm:p-7 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="space-y-0.5">
+                  <Badge variant="primary">
+                    Primary Retention Metric · D1 Retention Rate
+                  </Badge>
+                  <h3 className="text-lg font-bold text-text pt-1">
+                    Calendar-Day D1 Return Percentage
+                  </h3>
+                </div>
+                <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-border-subtle text-muted border border-border w-fit">
+                  Excludes simulated demo preview
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+                <div className="p-4 rounded-xl bg-background border border-border space-y-0.5">
+                  <span className="text-xs text-muted block font-medium">Eligible D1 Cohort Size</span>
+                  <div className="text-xl font-extrabold text-text">
+                    {`${d1Result.eligibleUsers} users`}
+                  </div>
+                  <p className="text-[11px] text-muted">Closed cohorts (≥ 48h old)</p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-background border border-border space-y-0.5">
+                  <span className="text-xs text-muted block font-medium">D1 Retained Users</span>
+                  <div className="text-xl font-extrabold text-text">
+                    {`${d1Result.retainedUsers} users`}
+                  </div>
+                  <p className="text-[11px] text-muted">Returned on next calendar day</p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-background border border-border space-y-0.5">
+                  <span className="text-xs text-muted block font-medium">Official D1 Retention</span>
+                  <div className="text-xl font-extrabold text-primary">
+                    {d1Result.hasEnoughData
+                      ? `${d1Result.d1Percentage.toFixed(1)}%`
+                      : "Not enough real cohort data yet"}
+                  </div>
+                  <p className="text-[11px] text-muted">
+                    {d1Result.hasEnoughData
+                      ? "Measured across closed cohorts"
+                      : "Requires cohorts ≥ 48h after Day 0"}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </section>
 
         {/* Retention Funnel Section */}
@@ -219,37 +227,34 @@ export default async function AnalyticsPage() {
               Retention &amp; Engagement Funnel
             </h2>
             <p className="text-xs text-muted">
-              Distinct user drop-off across the onboarding, learning, and return loop
+              Distinct user conversion across onboarding, curriculum start, and habit retention
             </p>
           </div>
 
-          <div className="space-y-3 bg-surface border border-border rounded-2xl p-6 shadow-xs">
-            {funnel.steps.map((step, idx) => (
-              <div key={step.stepName} className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs sm:text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-muted w-4">
-                      {`${idx + 1}.`}
-                    </span>
-                    <span className="font-semibold text-text">{step.stepName}</span>
+          <Card variant="default">
+            <CardContent className="p-6 space-y-4">
+              {funnel.steps.map((step, idx) => (
+                <div key={step.stepName} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-muted w-4">
+                        {`${idx + 1}.`}
+                      </span>
+                      <span className="font-semibold text-text">{step.stepName}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs font-mono">
+                      <span className="text-muted">{`${step.distinctUsers} users`}</span>
+                      <span className="font-bold text-text w-12 text-right">
+                        {`${step.percentageOfTotal.toFixed(1)}%`}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 text-xs font-mono">
-                    <span className="text-muted">{`${step.distinctUsers} users`}</span>
-                    <span className="font-bold text-text w-12 text-right">
-                      {`${step.percentageOfTotal.toFixed(1)}%`}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="w-full bg-border rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-primary h-full rounded-full transition-all duration-500"
-                    style={{ width: `${step.percentageOfTotal}%` }}
-                  />
+                  <ProgressBar value={step.percentageOfTotal} variant="primary" size="sm" />
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </CardContent>
+          </Card>
         </section>
 
         {/* Cohort Analysis Table */}
@@ -264,14 +269,14 @@ export default async function AnalyticsPage() {
           </div>
 
           {cohortRows.length === 0 ? (
-            <div className="p-8 rounded-2xl border border-dashed border-border text-center bg-surface space-y-2">
+            <Card variant="default" className="p-8 text-center border-dashed">
               <p className="text-sm font-semibold text-text">
                 Not enough real cohort data yet.
               </p>
-              <p className="text-xs text-muted max-w-md mx-auto">
-                No new users with a recorded <code>first_session_started</code> event exist in the local SQLite database. Complete onboarding to create the first cohort.
+              <p className="text-xs text-muted max-w-md mx-auto mt-1">
+                No new users with a recorded <code>first_session_started</code> event exist in the active database. Complete onboarding to initiate the first cohort.
               </p>
-            </div>
+            </Card>
           ) : (
             <div className="overflow-x-auto rounded-2xl border border-border shadow-xs bg-surface">
               <table className="w-full text-left text-xs sm:text-sm">
@@ -290,17 +295,11 @@ export default async function AnalyticsPage() {
                       <td className="py-3 px-4 font-semibold font-sans text-text">{row.cohortDate}</td>
                       <td className="py-3 px-4 text-text">{row.eligibleUsers}</td>
                       <td className="py-3 px-4 text-text">{row.d1RetainedUsers}</td>
-                      <td className="py-3 px-4 font-bold text-text">{`${row.d1Percentage.toFixed(1)}%`}</td>
+                      <td className="py-3 px-4 font-bold text-primary">{`${row.d1Percentage.toFixed(1)}%`}</td>
                       <td className="py-3 px-4 font-sans">
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium ${
-                            row.status === "complete"
-                              ? "bg-success/10 text-success"
-                              : "bg-accent/15 text-accent"
-                          }`}
-                        >
-                          {row.status === "complete" ? "Complete (Closed)" : "Incomplete (In progress)"}
-                        </span>
+                        <Badge variant={row.status === "complete" ? "success" : "warning"} size="sm">
+                          {row.status === "complete" ? "Closed (Complete)" : "In progress"}
+                        </Badge>
                       </td>
                     </tr>
                   ))}
@@ -310,27 +309,27 @@ export default async function AnalyticsPage() {
           )}
         </section>
 
-        {/* Illustrative Example Only Section */}
+        {/* Illustrative Cohort Simulation Section */}
         <section aria-labelledby="illustrative-heading" className="space-y-4">
           <div className="border-b border-border pb-2 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
                 <h2 id="illustrative-heading" className="text-base font-bold text-text">
-                  Illustrative Example Only
+                  Illustrative Cohort Model
                 </h2>
-                <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                  Simulation Sample
-                </span>
+                <Badge variant="secondary" size="sm">
+                  Benchmark Model
+                </Badge>
               </div>
-              <p className="text-xs text-muted">
-                Synthetic multi-day cohort visualization showing target 22% benchmark trajectory. Completely isolated from real local metrics.
+              <p className="text-xs text-muted mt-0.5">
+                Target benchmark trajectory showing expected performance under optimal return prompts.
               </p>
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-dashed border-primary/30 bg-primary/5">
+          <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
             <table className="w-full text-left text-xs">
-              <thead className="text-muted font-semibold border-b border-primary/20">
+              <thead className="text-muted font-semibold border-b border-border bg-background">
                 <tr>
                   <th className="py-2.5 px-4">Sample Date</th>
                   <th className="py-2.5 px-4">Sample Users</th>
@@ -339,7 +338,7 @@ export default async function AnalyticsPage() {
                   <th className="py-2.5 px-4">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-primary/15 font-mono text-xs">
+              <tbody className="divide-y divide-border font-mono text-xs">
                 {illustrativeCohortExample.map((ex) => (
                   <tr key={ex.cohortDate}>
                     <td className="py-2.5 px-4 font-sans text-text">{ex.cohortDate}</td>
@@ -361,7 +360,7 @@ export default async function AnalyticsPage() {
               Event Taxonomy Audit
             </h2>
             <p className="text-xs text-muted">
-              Total volume and distinct user participation per instrumented event
+              Volume and distinct user activity per instrumented telemetry event
             </p>
           </div>
 
@@ -371,7 +370,7 @@ export default async function AnalyticsPage() {
                 <tr>
                   <th className="py-3 px-4">Event Name</th>
                   <th className="py-3 px-4">Distinct Users</th>
-                  <th className="py-3 px-4">Total Occurrences</th>
+                  <th className="py-3 px-4">Total Volume</th>
                   <th className="py-3 px-4">Earliest Recorded</th>
                   <th className="py-3 px-4">Latest Recorded</th>
                 </tr>
@@ -405,57 +404,45 @@ export default async function AnalyticsPage() {
           </div>
         </section>
 
-        {/* Explanation & Methodology Panel */}
-        <section aria-labelledby="explanation-heading" className="p-6 rounded-2xl bg-surface border border-border space-y-4 text-xs leading-relaxed text-muted shadow-xs">
-          <h3 id="explanation-heading" className="text-sm font-bold text-text uppercase tracking-wider">
-            Measurement Methodology &amp; Definitions
-          </h3>
+        {/* Measurement Methodology Card */}
+        <Card variant="default">
+          <CardContent className="p-6 space-y-4 text-xs leading-relaxed text-muted">
+            <h3 id="explanation-heading" className="text-sm font-bold text-text uppercase tracking-wider">
+              Measurement Methodology &amp; Definitions
+            </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <strong className="text-text block font-semibold">Exact D1 Definition:</strong>
-              <p>
-                D1 retention is defined strictly as the percentage of new users who return on the <em>calendar day</em> after their first session. Rolling 24-hour windows are prohibited.
-              </p>
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+              <div className="space-y-1.5">
+                <strong className="text-text block font-semibold">Exact D1 Definition:</strong>
+                <p>
+                  D1 retention is defined strictly as the percentage of new users who return on the <em>calendar day</em> after their first session. Rolling 24-hour windows are prohibited.
+                </p>
+              </div>
 
-            <div className="space-y-1.5">
-              <strong className="text-text block font-semibold">Cohort Start Event:</strong>
-              <p>
-                The new-user cohort is anchored by the earliest <code>first_session_started</code> event. This event is recorded idempotently upon onboarding and cannot be duplicated.
-              </p>
-            </div>
+              <div className="space-y-1.5">
+                <strong className="text-text block font-semibold">Cohort Start Event:</strong>
+                <p>
+                  The new-user cohort is anchored by the earliest <code>first_session_started</code> event. This event is recorded idempotently and cannot be duplicated.
+                </p>
+              </div>
 
-            <div className="space-y-1.5">
-              <strong className="text-text block font-semibold">Qualifying Return Events:</strong>
-              <p>
-                A user is counted as retained if they execute at least one real engagement action on the next calendar day:{" "}
-                <code>{QUALIFYING_RETURN_EVENTS.join(", ")}</code>.
-              </p>
-            </div>
+              <div className="space-y-1.5">
+                <strong className="text-text block font-semibold">Qualifying Return Events:</strong>
+                <p>
+                  A user is counted as retained if they execute at least one real engagement action on the next calendar day:{" "}
+                  <code>{QUALIFYING_RETURN_EVENTS.join(", ")}</code>.
+                </p>
+              </div>
 
-            <div className="space-y-1.5">
-              <strong className="text-text block font-semibold">Excluded Demo Events:</strong>
-              <p>
-                Events from the interactive preview (<code>{EXCLUDED_RETENTION_EVENTS.join(", ")}</code>) are strictly excluded from retention calculations and cohort rows.
-              </p>
+              <div className="space-y-1.5">
+                <strong className="text-text block font-semibold">Excluded Demo Events:</strong>
+                <p>
+                  Events from the interactive preview (<code>{EXCLUDED_RETENTION_EVENTS.join(", ")}</code>) are strictly excluded from retention calculations and cohort rows.
+                </p>
+              </div>
             </div>
-
-            <div className="space-y-1.5">
-              <strong className="text-text block font-semibold">Timezone Policy:</strong>
-              <p>
-                Calendar dates are evaluated in the user&apos;s configured reminder timezone (stored in <code>ReminderPreference</code> or <code>UserPreference</code>). If unavailable or invalid, dates fall back to UTC.
-              </p>
-            </div>
-
-            <div className="space-y-1.5">
-              <strong className="text-text block font-semibold">Cohort Completeness Rule:</strong>
-              <p>
-                A cohort on date <em>D</em> is marked <em>incomplete</em> until date <em>D + 2</em>, ensuring the full 24 hours of Day 1 have closed before computing the official D1 rate.
-              </p>
-            </div>
-          </div>
-        </section>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

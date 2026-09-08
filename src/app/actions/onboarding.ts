@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth/session";
 import { getOrCreateDemoUser } from "@/lib/demo-user";
 import { prisma } from "@/lib/prisma";
 import { onboardingSchema } from "@/lib/validation";
@@ -13,7 +14,7 @@ export interface OnboardingState {
 
 /**
  * Server Action for handling onboarding form submission.
- * Validates selections, provisions or reuses the demo user,
+ * Validates selections, associates with active authenticated user (or fallback demo user),
  * upserts user preferences, records server-side analytics, and redirects to /plan.
  */
 export async function submitOnboarding(
@@ -40,12 +41,22 @@ export async function submitOnboarding(
   const { role, learningGoal, experienceLevel } = parsed.data;
 
   try {
-    // 2. Provision or retrieve existing demo user (cookie-backed)
-    const { user, isNew } = await getOrCreateDemoUser();
+    // 2. Resolve active authenticated user; fallback to demo user for backward compatibility
+    let userId: string;
+    let isNew = false;
 
-    // 3. Upsert user preferences (prevents duplicate users on repeated submissions)
+    const authUser = await getCurrentUser();
+    if (authUser) {
+      userId = authUser.id;
+    } else {
+      const demoResult = await getOrCreateDemoUser();
+      userId = demoResult.user.id;
+      isNew = demoResult.isNew;
+    }
+
+    // 3. Upsert user preferences (prevents duplicate preferences on repeated submissions)
     await prisma.userPreference.upsert({
-      where: { userId: user.id },
+      where: { userId },
       update: {
         role,
         learningGoal,
@@ -54,7 +65,7 @@ export async function submitOnboarding(
         timezone: null,
       },
       create: {
-        userId: user.id,
+        userId,
         role,
         learningGoal,
         experienceLevel,
@@ -65,30 +76,30 @@ export async function submitOnboarding(
 
     // 4. Record analytics events safely
     if (isNew) {
-      await recordEvent("onboarding_started", user.id, {}, "/onboarding");
+      await recordEvent("onboarding_started", userId, {}, "/onboarding");
     }
-    await recordEvent("role_selected", user.id, { role }, "/onboarding");
-    await recordEvent("goal_selected", user.id, { goal: learningGoal }, "/onboarding");
+    await recordEvent("role_selected", userId, { role }, "/onboarding");
+    await recordEvent("goal_selected", userId, { goal: learningGoal }, "/onboarding");
     await recordEvent(
       "experience_level_selected",
-      user.id,
+      userId,
       { experienceLevel },
       "/onboarding"
     );
     await recordEvent(
       "onboarding_completed",
-      user.id,
+      userId,
       { role, goal: learningGoal, experienceLevel },
       "/onboarding"
     );
     await recordFirstSessionStarted(
-      user.id,
+      userId,
       { role, goal: learningGoal, experienceLevel },
       "/onboarding"
     );
     await recordEvent(
       "plan_created",
-      user.id,
+      userId,
       { role, goal: learningGoal },
       "/onboarding"
     );

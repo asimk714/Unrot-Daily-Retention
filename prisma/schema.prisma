@@ -13,16 +13,34 @@ datasource db {
 // ─── User ──────────────────────────────────────────────────────────────────────
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String?
+  passwordHash String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   preference UserPreference?
   progress   LessonProgress[]
   reminder   ReminderPreference?
   events     AnalyticsEvent[]
+  sessions   Session[]
+}
+
+// ─── Session ──────────────────────────────────────────────────────────────────
+// Persistent server-side sessions for authenticated users.
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
 }
 
 // ─── User Preference ───────────────────────────────────────────────────────────

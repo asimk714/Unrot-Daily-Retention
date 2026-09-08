@@ -10,6 +10,13 @@ import {
   type AllowedExperience,
 } from "@/lib/validation";
 import { submitOnboarding } from "@/app/actions/onboarding";
+import { Card, CardContent } from "@/components/ui/Card";
+import { Stepper } from "@/components/ui/Stepper";
+import { Button } from "@/components/ui/Button";
+import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
+
+const STEP_LABELS = ["Target Role", "Learning Goal", "AI Experience", "Calibration Summary"];
 
 export function OnboardingForm() {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
@@ -56,273 +63,241 @@ export function OnboardingForm() {
     });
   };
 
-  // Determine if Continue button should be enabled
   const isContinueDisabled =
     (step === 1 && !role) ||
     (step === 2 && !learningGoal) ||
     (step === 3 && !experienceLevel);
 
   return (
-    <div className="w-full max-w-xl mx-auto bg-surface border border-border rounded-2xl p-6 sm:p-8 shadow-xs">
-      {/* Progress header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted mb-2">
-          <span>Step {step} of 4</span>
-          <span>{Math.round((step / 4) * 100)}% completed</span>
-        </div>
-        <div className="w-full bg-border rounded-full h-1.5 overflow-hidden">
-          <div
-            className="bg-primary h-full rounded-full transition-all duration-300 ease-out"
-            style={{ width: `${(step / 4) * 100}%` }}
-          />
-        </div>
-      </div>
+    <Card variant="default" className="w-full max-w-xl mx-auto shadow-card">
+      <CardContent className="p-6 sm:p-8 space-y-6">
+        {/* Stepper */}
+        <Stepper
+          totalSteps={4}
+          currentStep={step}
+          stepLabels={STEP_LABELS}
+          className="pb-2"
+        />
 
-      {/* Error alert if any */}
-      {errorMessage && (
-        <div
-          role="alert"
-          className="mb-6 p-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl dark:text-red-400 dark:bg-red-950/40 dark:border-red-900/60"
-        >
-          {errorMessage}
-        </div>
-      )}
+        {/* Error Alert */}
+        {errorMessage && (
+          <Alert variant="danger" title="Validation Note">
+            {errorMessage}
+          </Alert>
+        )}
 
-      {/* Step 1: Role */}
-      {step === 1 && (
-        <fieldset className="space-y-4">
-          <legend className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-1">
-            What is your current role?
-          </legend>
-          <p className="text-sm text-muted mb-4">
-            We personalize your daily examples and focus areas based on what you do.
-          </p>
-          <div className="grid grid-cols-1 gap-2.5" role="radiogroup" aria-label="Role options">
-            {ALLOWED_ROLES.map((option) => {
-              const isSelected = role === option;
-              return (
-                <button
-                  type="button"
-                  key={option}
-                  role="radio"
-                  aria-checked={isSelected}
-                  onClick={() => setRole(option)}
-                  className={`w-full text-left p-4 rounded-xl border transition-all cursor-pointer font-medium text-sm sm:text-base flex items-center justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                    isSelected
-                      ? "border-primary bg-primary/5 text-text ring-1 ring-primary/40 shadow-xs"
-                      : "border-border hover:border-primary/40 text-text bg-surface"
-                  }`}
-                >
-                  <span>{option}</span>
-                  <span
-                    className={`h-4 w-4 rounded-full border flex items-center justify-center ${
+        {/* Step 1: Role */}
+        {step === 1 && (
+          <fieldset className="space-y-4">
+            <div>
+              <legend className="text-xl sm:text-2xl font-bold tracking-tight text-text">
+                What is your primary role?
+              </legend>
+              <p className="text-xs sm:text-sm text-muted mt-1">
+                Your daily examples and analogies will be calibrated specifically to your day-to-day work.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2.5 pt-1" role="radiogroup" aria-label="Role options">
+              {ALLOWED_ROLES.map((option) => {
+                const isSelected = role === option;
+                return (
+                  <button
+                    type="button"
+                    key={option}
+                    role="radio"
+                    aria-checked={isSelected}
+                    onClick={() => setRole(option)}
+                    className={`w-full text-left p-4 rounded-xl border transition-all duration-150 cursor-pointer font-medium text-sm sm:text-base flex items-center justify-between focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary active:scale-[0.99] ${
                       isSelected
-                        ? "border-primary bg-primary text-white"
-                        : "border-border"
+                        ? "border-primary bg-primary/5 text-text ring-1 ring-primary shadow-xs"
+                        : "border-border hover:border-primary/40 text-text bg-surface"
                     }`}
                   >
-                    {isSelected && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-white" />
-                    )}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
-      )}
+                    <span>{option}</span>
+                    <span
+                      className={`h-4 w-4 rounded-full border flex items-center justify-center transition-colors ${
+                        isSelected
+                          ? "border-primary bg-primary text-white"
+                          : "border-border"
+                      }`}
+                    >
+                      {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        )}
 
-      {/* Step 2: Learning Goal */}
-      {step === 2 && (
-        <fieldset className="space-y-4">
-          <legend className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-1">
-            What is your primary learning goal?
-          </legend>
-          <p className="text-sm text-muted mb-4">
-            Choose the outcome you want from your 5-minute daily sessions.
-          </p>
-          <div className="grid grid-cols-1 gap-2.5" role="radiogroup" aria-label="Goal options">
-            {ALLOWED_GOALS.map((option) => {
-              const isSelected = learningGoal === option;
-              return (
-                <button
-                  type="button"
-                  key={option}
-                  role="radio"
-                  aria-checked={isSelected}
-                  onClick={() => setLearningGoal(option)}
-                  className={`w-full text-left p-4 rounded-xl border transition-all cursor-pointer font-medium text-sm sm:text-base flex items-center justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                    isSelected
-                      ? "border-primary bg-primary/5 text-text ring-1 ring-primary/40 shadow-xs"
-                      : "border-border hover:border-primary/40 text-text bg-surface"
-                  }`}
-                >
-                  <span>{option}</span>
-                  <span
-                    className={`h-4 w-4 rounded-full border flex items-center justify-center ${
+        {/* Step 2: Learning Goal */}
+        {step === 2 && (
+          <fieldset className="space-y-4">
+            <div>
+              <legend className="text-xl sm:text-2xl font-bold tracking-tight text-text">
+                What is your primary focus?
+              </legend>
+              <p className="text-xs sm:text-sm text-muted mt-1">
+                Choose the concrete outcome you want from your 5-minute daily micro-sessions.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2.5 pt-1" role="radiogroup" aria-label="Goal options">
+              {ALLOWED_GOALS.map((option) => {
+                const isSelected = learningGoal === option;
+                return (
+                  <button
+                    type="button"
+                    key={option}
+                    role="radio"
+                    aria-checked={isSelected}
+                    onClick={() => setLearningGoal(option)}
+                    className={`w-full text-left p-4 rounded-xl border transition-all duration-150 cursor-pointer font-medium text-sm sm:text-base flex items-center justify-between focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary active:scale-[0.99] ${
                       isSelected
-                        ? "border-primary bg-primary text-white"
-                        : "border-border"
+                        ? "border-primary bg-primary/5 text-text ring-1 ring-primary shadow-xs"
+                        : "border-border hover:border-primary/40 text-text bg-surface"
                     }`}
                   >
-                    {isSelected && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-white" />
-                    )}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
-      )}
+                    <span>{option}</span>
+                    <span
+                      className={`h-4 w-4 rounded-full border flex items-center justify-center transition-colors ${
+                        isSelected
+                          ? "border-primary bg-primary text-white"
+                          : "border-border"
+                      }`}
+                    >
+                      {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        )}
 
-      {/* Step 3: Experience Level */}
-      {step === 3 && (
-        <fieldset className="space-y-4">
-          <legend className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-1">
-            What is your experience with AI?
-          </legend>
-          <p className="text-sm text-muted mb-4">
-            This calibrates the depth and technical terminology of your daily reviews.
-          </p>
-          <div
-            className="grid grid-cols-1 gap-2.5"
-            role="radiogroup"
-            aria-label="Experience level options"
-          >
-            {ALLOWED_EXPERIENCES.map((option) => {
-              const isSelected = experienceLevel === option;
-              return (
-                <button
-                  type="button"
-                  key={option}
-                  role="radio"
-                  aria-checked={isSelected}
-                  onClick={() => setExperienceLevel(option)}
-                  className={`w-full text-left p-4 rounded-xl border transition-all cursor-pointer font-medium text-sm sm:text-base flex items-center justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                    isSelected
-                      ? "border-primary bg-primary/5 text-text ring-1 ring-primary/40 shadow-xs"
-                      : "border-border hover:border-primary/40 text-text bg-surface"
-                  }`}
-                >
-                  <span>{option}</span>
-                  <span
-                    className={`h-4 w-4 rounded-full border flex items-center justify-center ${
+        {/* Step 3: Experience Level */}
+        {step === 3 && (
+          <fieldset className="space-y-4">
+            <div>
+              <legend className="text-xl sm:text-2xl font-bold tracking-tight text-text">
+                What is your current AI experience?
+              </legend>
+              <p className="text-xs sm:text-sm text-muted mt-1">
+                This fine-tunes technical depth so reviews stay engaging without overwhelming you.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2.5 pt-1" role="radiogroup" aria-label="Experience level options">
+              {ALLOWED_EXPERIENCES.map((option) => {
+                const isSelected = experienceLevel === option;
+                return (
+                  <button
+                    type="button"
+                    key={option}
+                    role="radio"
+                    aria-checked={isSelected}
+                    onClick={() => setExperienceLevel(option)}
+                    className={`w-full text-left p-4 rounded-xl border transition-all duration-150 cursor-pointer font-medium text-sm sm:text-base flex items-center justify-between focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary active:scale-[0.99] ${
                       isSelected
-                        ? "border-primary bg-primary text-white"
-                        : "border-border"
+                        ? "border-primary bg-primary/5 text-text ring-1 ring-primary shadow-xs"
+                        : "border-border hover:border-primary/40 text-text bg-surface"
                     }`}
                   >
-                    {isSelected && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-white" />
-                    )}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
-      )}
+                    <span>{option}</span>
+                    <span
+                      className={`h-4 w-4 rounded-full border flex items-center justify-center transition-colors ${
+                        isSelected
+                          ? "border-primary bg-primary text-white"
+                          : "border-border"
+                      }`}
+                    >
+                      {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        )}
 
-      {/* Step 4: Confirmation */}
-      {step === 4 && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-2">
-              Ready to start your plan
-            </h2>
-            <p className="text-sm text-muted">
-              We will generate a personalized 5-minute daily learning path matched to your selections.
+        {/* Step 4: Confirmation */}
+        {step === 4 && (
+          <div className="space-y-5">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Badge variant="success" dot>
+                  Calibrated
+                </Badge>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-text">
+                Your 5-day habit is ready
+              </h2>
+              <p className="text-xs sm:text-sm text-muted mt-1">
+                Here is how we have configured your daily micro-curriculum based on your choices:
+              </p>
+            </div>
+
+            <div className="bg-background border border-border rounded-xl p-5 space-y-3 shadow-2xs">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted font-medium">Target Role:</span>
+                <span className="text-text font-bold">{role}</span>
+              </div>
+              <div className="border-t border-border-subtle pt-3 flex items-center justify-between text-sm">
+                <span className="text-muted font-medium">Primary Goal:</span>
+                <span className="text-text font-bold text-right">{learningGoal}</span>
+              </div>
+              <div className="border-t border-border-subtle pt-3 flex items-center justify-between text-sm">
+                <span className="text-muted font-medium">Experience Level:</span>
+                <span className="text-text font-bold">{experienceLevel}</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted leading-relaxed">
+              Sessions take ~5 minutes each day. Each includes a mental model, real-world case study, and an interactive active-recall check.
             </p>
           </div>
+        )}
 
-          <div className="bg-background border border-border rounded-xl p-5 space-y-3.5">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted font-medium">Role:</span>
-              <span className="text-text font-semibold">{role}</span>
-            </div>
-            <div className="border-t border-border pt-3 flex items-center justify-between text-sm">
-              <span className="text-muted font-medium">Primary Goal:</span>
-              <span className="text-text font-semibold text-right">{learningGoal}</span>
-            </div>
-            <div className="border-t border-border pt-3 flex items-center justify-between text-sm">
-              <span className="text-muted font-medium">Experience:</span>
-              <span className="text-text font-semibold">{experienceLevel}</span>
-            </div>
-          </div>
+        {/* Action Controls */}
+        <div className="pt-4 border-t border-border flex items-center justify-between gap-3">
+          {step > 1 ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              onClick={handleBack}
+              disabled={isPending}
+            >
+              Back
+            </Button>
+          ) : (
+            <div />
+          )}
 
-          <p className="text-xs text-muted leading-relaxed">
-            Your plan contains focused 5-minute sessions with concise explanations, practical examples, and quick knowledge checks.
-          </p>
+          {step < 4 ? (
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              onClick={handleContinue}
+              disabled={isContinueDisabled}
+            >
+              Continue →
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              onClick={handleSubmit}
+              isLoading={isPending}
+            >
+              Create my learning plan
+            </Button>
+          )}
         </div>
-      )}
-
-      {/* Controls */}
-      <div className="mt-8 pt-6 border-t border-border flex items-center justify-between gap-3">
-        {step > 1 ? (
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={isPending}
-            className="px-5 py-2.5 rounded-full border border-border text-sm font-medium text-text hover:bg-background transition-colors cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            Back
-          </button>
-        ) : (
-          <div />
-        )}
-
-        {step < 4 ? (
-          <button
-            type="button"
-            onClick={handleContinue}
-            disabled={isContinueDisabled}
-            className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-              isContinueDisabled
-                ? "bg-border text-muted cursor-not-allowed"
-                : "bg-primary hover:bg-primary-hover text-white cursor-pointer shadow-xs"
-            }`}
-          >
-            Continue
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isPending}
-            className="px-7 py-2.5 rounded-full bg-primary hover:bg-primary-hover text-white text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            {isPending ? (
-              <>
-                <svg
-                  className="animate-spin h-4 w-4 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                <span>Creating your plan...</span>
-              </>
-            ) : (
-              "Create my learning plan"
-            )}
-          </button>
-        )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -4,6 +4,11 @@ import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import type { NormalizedLessonContent } from "@/lib/lesson-content";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Alert } from "@/components/ui/Alert";
+import { Stepper } from "@/components/ui/Stepper";
+import { LessonTakeaway } from "@/components/ui/LessonTakeaway";
 import {
   startLessonAction,
   recordSectionViewedAction,
@@ -33,6 +38,7 @@ export function LessonReader({ lesson, content, initialProgress }: LessonReaderP
   const totalSections = sections.length;
   // Step indices: 0 to (totalSections - 1) are content sections; totalSections is Quiz step
   const QUIZ_STEP = totalSections;
+  const totalSteps = totalSections + 1;
 
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -57,7 +63,6 @@ export function LessonReader({ lesson, content, initialProgress }: LessonReaderP
     recordSectionViewedAction(lesson.id, 0);
   }, [lesson.id]);
 
-  // Navigate to previous section
   const handleBack = () => {
     setErrorMessage(null);
     if (currentStep > 0) {
@@ -69,7 +74,6 @@ export function LessonReader({ lesson, content, initialProgress }: LessonReaderP
     }
   };
 
-  // Navigate to next section or enter quiz
   const handleNext = () => {
     setErrorMessage(null);
     if (currentStep < totalSections) {
@@ -83,7 +87,6 @@ export function LessonReader({ lesson, content, initialProgress }: LessonReaderP
     }
   };
 
-  // Handle quiz submission
   const handleQuizSubmit = () => {
     if (selectedOption === null) {
       setErrorMessage("Please choose an answer before submitting.");
@@ -104,7 +107,6 @@ export function LessonReader({ lesson, content, initialProgress }: LessonReaderP
     });
   };
 
-  // Allow retrying if answered incorrectly
   const handleRetryQuiz = () => {
     setQuizSubmitted(false);
     setIsCorrect(null);
@@ -113,7 +115,6 @@ export function LessonReader({ lesson, content, initialProgress }: LessonReaderP
     setErrorMessage(null);
   };
 
-  // Complete lesson and redirect
   const handleCompleteLesson = () => {
     setErrorMessage(null);
     startTransition(async () => {
@@ -127,79 +128,70 @@ export function LessonReader({ lesson, content, initialProgress }: LessonReaderP
   const isReadingSection = currentStep < totalSections;
   const currentSection = isReadingSection ? sections[currentStep] : null;
 
+  const stepLabels = [
+    ...sections.map((_, i) => `Section ${i + 1}`),
+    "Knowledge Check",
+  ];
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-text font-sans">
-      {/* Top Header */}
-      <header className="border-b border-border px-6 py-4 sticky top-0 bg-surface/95 backdrop-blur-xs z-10">
+      {/* Distraction-free Top Header */}
+      <header className="border-b border-border px-6 py-3.5 sticky top-0 bg-surface/95 backdrop-blur-md z-10">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <Link
             href="/"
-            className="text-lg font-bold tracking-tight text-text hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2 text-base font-extrabold tracking-tight text-text hover:text-primary transition-colors"
           >
-            Unrot Daily
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-white font-bold text-xs shadow-xs">
+              U
+            </div>
+            <span>Unrot Daily</span>
           </Link>
           <div className="flex items-center gap-4">
             <Link
               href="/plan"
               className="text-xs sm:text-sm font-medium text-muted hover:text-text transition-colors flex items-center gap-1"
             >
-              ← Back to plan
+              <span>← Back to plan</span>
             </Link>
             <ThemeToggle />
           </div>
         </div>
       </header>
 
-      {/* Main Container */}
+      {/* Main Reading Container */}
       <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-8 sm:py-12 flex flex-col justify-between">
         <div className="space-y-6">
           {/* Lesson Metadata Header */}
           <div className="space-y-2 border-b border-border pb-5">
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
-              <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
-                Day {lesson.dayNumber}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Badge variant="primary" dot>
+                Day {lesson.dayNumber} Focus
+              </Badge>
+              <span className="text-xs font-semibold text-muted">
+                ⏱ ~{lesson.durationMinutes} minutes
               </span>
-              <span>⏱ ~{lesson.durationMinutes} minutes</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-text">
               {lesson.title}
             </h1>
-            <p className="text-sm text-muted leading-relaxed">
+            <p className="text-sm sm:text-base text-muted leading-relaxed">
               {lesson.summary}
             </p>
           </div>
 
-          {/* Progress Indicator */}
-          <div>
-            <div className="flex items-center justify-between text-xs font-medium text-muted mb-2">
-              <span>
-                {isReadingSection
-                  ? `Section ${currentStep + 1} of ${totalSections}`
-                  : "Knowledge Check"}
-              </span>
-              <span>
-                {Math.round(((currentStep + (quizSubmitted ? 1 : 0)) / (totalSections + 1)) * 100)}%
-              </span>
-            </div>
-            <div className="w-full bg-border rounded-full h-1.5 overflow-hidden">
-              <div
-                className="bg-primary h-full rounded-full transition-all duration-300 ease-out"
-                style={{
-                  width: `${((currentStep + (quizSubmitted ? 1 : 0)) / (totalSections + 1)) * 100}%`,
-                }}
-              />
-            </div>
-          </div>
+          {/* Stepper Progress */}
+          <Stepper
+            totalSteps={totalSteps}
+            currentStep={currentStep + 1}
+            stepLabels={stepLabels}
+          />
 
-          {/* Global error alert */}
+          {/* Error alert */}
           {errorMessage && (
-            <div
-              role="alert"
-              aria-live="polite"
-              className="p-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl dark:text-red-400 dark:bg-red-950/40 dark:border-red-900/60"
-            >
+            <Alert variant="danger" title="Review note">
               {errorMessage}
-            </div>
+            </Alert>
           )}
 
           {/* Section Reader Content */}
@@ -209,23 +201,21 @@ export function LessonReader({ lesson, content, initialProgress }: LessonReaderP
                 <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-text">
                   {currentSection.heading}
                 </h2>
-                <div className="text-base text-text/85 leading-relaxed whitespace-pre-line space-y-4">
+                <div className="text-sm sm:text-base text-text/85 leading-relaxed whitespace-pre-line space-y-4 font-normal">
                   {currentSection.body}
                 </div>
               </div>
 
-              {/* Practical Example Panel (displayed on final reading section if present) */}
+              {/* Practical Example Takeaway Card (displayed on final section) */}
               {currentStep === totalSections - 1 && content.example && (
-                <div className="mt-8 p-5 sm:p-6 rounded-2xl bg-accent/5 border border-accent/20 space-y-3 shadow-xs">
-                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-accent">
-                    <span role="img" aria-label="Example">
-                      💡
-                    </span>
-                    <span>Practical Example: {content.example.title}</span>
-                  </div>
-                  <p className="text-sm text-text/85 leading-relaxed">
+                <div className="pt-2">
+                  <LessonTakeaway
+                    title={content.example.title}
+                    icon="💡"
+                    tag="Applied Mental Model"
+                  >
                     {content.example.content}
-                  </p>
+                  </LessonTakeaway>
                 </div>
               )}
             </article>
@@ -234,12 +224,12 @@ export function LessonReader({ lesson, content, initialProgress }: LessonReaderP
           {/* Knowledge Check Step */}
           {currentStep === QUIZ_STEP && (
             <div className="space-y-6 animate-in fade-in duration-200">
-              <div className="space-y-2">
-                <span className="inline-block text-xs font-semibold uppercase tracking-wider text-primary">
-                  Quick Knowledge Check
-                </span>
+              <div className="space-y-1">
+                <Badge variant="primary" dot>
+                  Active Recall
+                </Badge>
                 <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-text">
-                  Check your understanding
+                  Verify your mental model
                 </h2>
               </div>
 
@@ -265,20 +255,20 @@ export function LessonReader({ lesson, content, initialProgress }: LessonReaderP
                           "border-success bg-success/10 text-text font-medium ring-1 ring-success/30";
                       } else if (isSelected && !isCorrect) {
                         optionStyle =
-                          "border-red-500 bg-red-500/10 text-text font-medium ring-1 ring-red-500/30";
+                          "border-danger bg-danger/10 text-text font-medium ring-1 ring-danger/30";
                       } else {
                         optionStyle =
                           "border-border/60 opacity-50 text-muted bg-surface";
                       }
                     } else if (isSelected) {
                       optionStyle =
-                        "border-primary bg-primary/5 text-text font-medium ring-1 ring-primary/40 shadow-xs";
+                        "border-primary bg-primary/5 text-text font-medium ring-1 ring-primary shadow-xs";
                     }
 
                     return (
                       <label
                         key={idx}
-                        className={`w-full p-4 rounded-xl border flex items-center justify-between cursor-pointer transition-all text-sm sm:text-base focus-within:ring-2 focus-within:ring-primary ${optionStyle}`}
+                        className={`w-full p-4 rounded-xl border flex items-center justify-between cursor-pointer transition-all duration-150 text-sm sm:text-base focus-within:ring-2 focus-within:ring-primary ${optionStyle}`}
                       >
                         <div className="flex items-center gap-3 pr-2">
                           <input
@@ -294,7 +284,7 @@ export function LessonReader({ lesson, content, initialProgress }: LessonReaderP
                         </div>
 
                         <span
-                          className={`h-4 w-4 rounded-full border shrink-0 flex items-center justify-center ${
+                          className={`h-4 w-4 rounded-full border shrink-0 flex items-center justify-center transition-colors ${
                             isSelected
                               ? "border-primary bg-primary text-white"
                               : "border-border"
@@ -310,36 +300,14 @@ export function LessonReader({ lesson, content, initialProgress }: LessonReaderP
                 </div>
               </fieldset>
 
-              {/* Feedback Alert and Explanation */}
+              {/* Feedback and Explanation Alert */}
               {quizSubmitted && (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  className={`p-5 rounded-2xl border space-y-2.5 shadow-xs ${
-                    isCorrect
-                      ? "bg-success/10 border-success/30 text-text"
-                      : "bg-amber-500/10 border-amber-500/30 text-text"
-                  }`}
+                <Alert
+                  variant={isCorrect ? "success" : "warning"}
+                  title={isCorrect ? "Correct! Concept validated." : "Not quite right."}
                 >
-                  <div className="flex items-center gap-2 font-bold text-sm sm:text-base">
-                    {isCorrect ? (
-                      <>
-                        <span role="img" aria-label="Success">
-                          ✅
-                        </span>
-                        <span className="text-success">Correct! Great work.</span>
-                      </>
-                    ) : (
-                      <>
-                        <span role="img" aria-label="Incorrect">
-                          ⚠️
-                        </span>
-                        <span className="text-accent">Not quite right.</span>
-                      </>
-                    )}
-                  </div>
-                  <p className="text-sm leading-relaxed opacity-90">{explanation}</p>
-                </div>
+                  {explanation}
+                </Alert>
               )}
             </div>
           )}
@@ -347,89 +315,66 @@ export function LessonReader({ lesson, content, initialProgress }: LessonReaderP
 
         {/* Navigation & Action Controls */}
         <div className="mt-12 pt-6 border-t border-border flex items-center justify-between gap-3">
-          {/* Back button */}
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="md"
             onClick={handleBack}
             disabled={currentStep === 0 || isPending}
-            className="px-5 py-2.5 rounded-full border border-border text-sm font-medium text-text hover:bg-surface transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Back
-          </button>
+          </Button>
 
-          {/* Forward / Action buttons */}
           <div className="flex items-center gap-2">
             {isReadingSection && (
-              <button
+              <Button
                 type="button"
+                variant="primary"
+                size="md"
                 onClick={handleNext}
                 disabled={isPending}
-                className="px-6 py-2.5 rounded-full bg-primary hover:bg-primary-hover text-white text-sm font-medium transition-colors cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 {currentStep === totalSections - 1
                   ? "Go to Knowledge Check →"
                   : "Next Section →"}
-              </button>
+              </Button>
             )}
 
             {currentStep === QUIZ_STEP && !quizSubmitted && (
-              <button
+              <Button
                 type="button"
+                variant="primary"
+                size="md"
                 onClick={handleQuizSubmit}
                 disabled={selectedOption === null || isPending}
-                className="px-7 py-2.5 rounded-full bg-primary hover:bg-primary-hover text-white text-sm font-medium transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary flex items-center gap-2"
+                isLoading={isPending}
               >
-                {isPending ? "Submitting..." : "Submit answer"}
-              </button>
+                Submit answer
+              </Button>
             )}
 
             {currentStep === QUIZ_STEP && quizSubmitted && (
               <div className="flex items-center gap-2">
                 {!isCorrect && (
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="md"
                     onClick={handleRetryQuiz}
                     disabled={isPending}
-                    className="px-4 py-2.5 rounded-full border border-border text-sm font-medium text-text hover:bg-surface transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     Retry
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
                   type="button"
+                  variant="primary"
+                  size="md"
                   onClick={handleCompleteLesson}
-                  disabled={isPending}
-                  className="px-7 py-2.5 rounded-full bg-primary hover:bg-primary-hover text-white text-sm font-medium transition-colors cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary flex items-center gap-2"
+                  isLoading={isPending}
                 >
-                  {isPending ? (
-                    <>
-                      <svg
-                        className="animate-spin h-4 w-4 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                      <span>Completing...</span>
-                    </>
-                  ) : (
-                    "Complete lesson ✓"
-                  )}
-                </button>
+                  Complete lesson ✓
+                </Button>
               </div>
             )}
           </div>
